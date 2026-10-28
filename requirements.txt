@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+chromadb
+sentence-transformers
+mcp>=2
+httpx
+deltalake
+pyarrow
+numpy
+pytest
