@@ -23,8 +23,12 @@ jobs:
         run: |
           TAG=${{ github.event.workflow_run.head_sha || 'latest' }}  # manual runs use the latest pushed image
           az extension add --name containerapp --upgrade -y --only-show-errors
-          az containerapp update -n "${{ vars.AZURE_APP }}" -g "${{ vars.AZURE_RG }}" \
-            --image "ghcr.io/${{ github.repository_owner }}/de-assistant:$TAG" -o none
+          for i in 1 2 3 4; do  # a just-pushed GHCR tag can take a minute to become pullable
+            az containerapp update -n "${{ vars.AZURE_APP }}" -g "${{ vars.AZURE_RG }}" \
+              --image "ghcr.io/${{ github.repository_owner }}/de-assistant:$TAG" -o none && exit 0
+            echo "retry $i in 45s"; sleep 45
+          done
+          exit 1
       - name: Smoke test the live URL
         run: |
           for i in $(seq 1 40); do curl -sf "${{ vars.AZURE_URL }}/health" && exit 0; sleep 6; done

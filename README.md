@@ -1,5 +1,7 @@
 # de-assistant — AI assistant for a data pipeline (RAG + MCP)
 
+[![Deploy to Azure](https://github.com/mittalmayank842/de-assistant/actions/workflows/azure-deploy.yml/badge.svg)](https://github.com/mittalmayank842/de-assistant/actions/workflows/azure-deploy.yml)
+
 Ask questions about the [crypto-market-pipeline](https://github.com/mittalmayank842/crypto-market-pipeline)
 in plain English: how a rule works, what a table contains, whether it holds personal data, where its data
 comes from, whether today's run met its SLA — or ask it to re-run the pipeline.
@@ -60,6 +62,18 @@ The same functions are served two ways:
 ```bash
 docker run -p 8000:8000 ghcr.io/mittalmayank842/de-assistant:latest
 ```
+
+**Live on Azure:** the API runs on **Azure Container Apps** (East Asia, 0.5 vCPU, scales to zero when idle):
+https://de-assistant.thankfultree-5b5dff79.eastasia.azurecontainerapps.io/health. The first call after it has been idle takes a few seconds while it starts.
+
+Every successful image build on `main` triggers [Deploy to Azure](.github/workflows/azure-deploy.yml):
+1. GitHub Actions signs in to Azure with OIDC workload identity federation. No password or client secret is stored, and the identity may change only this resource group.
+2. It rolls the container app to the image built from that exact commit.
+3. It fails the run if the live `/health` does not answer.
+
+The one-time setup is [deploy/azure/setup.sh](deploy/azure/setup.sh).
+
+The hosted copy has no GPU, so the local Llama model is not deployed. There, `/chat` returns the tool result (docs search, metadata, PII, lineage) without the generated sentence. The full RAG answer runs locally with Docker Compose + Ollama.
 
 ## Run it
 
