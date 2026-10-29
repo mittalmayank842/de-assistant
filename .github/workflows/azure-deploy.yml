@@ -21,10 +21,10 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       - name: Roll out the new image to Azure Container Apps
         run: |
-          SHA=${{ github.event.workflow_run.head_sha || github.sha }}
+          TAG=${{ github.event.workflow_run.head_sha || 'latest' }}  # manual runs use the latest pushed image
           az extension add --name containerapp --upgrade -y --only-show-errors
           az containerapp update -n "${{ vars.AZURE_APP }}" -g "${{ vars.AZURE_RG }}" \
-            --image "ghcr.io/${{ github.repository_owner }}/de-assistant:$SHA" -o none
+            --image "ghcr.io/${{ github.repository_owner }}/de-assistant:$TAG" -o none
       - name: Smoke test the live URL
         run: |
           for i in $(seq 1 40); do curl -sf "${{ vars.AZURE_URL }}/health" && exit 0; sleep 6; done

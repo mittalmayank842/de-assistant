@@ -49,6 +49,14 @@ az ad app federated-credential create --id "$CLIENT_ID" --parameters "{
   \"subject\": \"repo:$REPO:ref:refs/heads/main\",
   \"audiences\": [\"api://AzureADTokenExchange\"]
 }" -o none
+# GitHub may present the subject with immutable owner/repo IDs instead; trust that form too.
+OWNER_ID=$(gh api "repos/$REPO" --jq .owner.id); REPO_ID=$(gh api "repos/$REPO" --jq .id)
+az ad app federated-credential create --id "$CLIENT_ID" --parameters "{
+  \"name\": \"github-main-ids\",
+  \"issuer\": \"https://token.actions.githubusercontent.com\",
+  \"subject\": \"repo:${REPO%%/*}@$OWNER_ID/${REPO##*/}@$REPO_ID:ref:refs/heads/main\",
+  \"audiences\": [\"api://AzureADTokenExchange\"]
+}" -o none
 
 gh secret set AZURE_CLIENT_ID -R "$REPO" -b "$CLIENT_ID"
 gh secret set AZURE_TENANT_ID -R "$REPO" -b "$TENANT"
