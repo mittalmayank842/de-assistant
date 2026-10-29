@@ -1,0 +1,31 @@
+name: Deploy to Azure
+# Runs after the Docker image is pushed to GHCR. Skips until deploy/azure/setup.sh has set the AZURE_APP variable.
+on:
+  workflow_run:
+    workflows: ["Docker image"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  id-token: write   # OIDC login to Azure, no stored password
+  contents: read
+jobs:
+  deploy:
+    if: vars.AZURE_APP != '' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Roll out the new image to Azure Container Apps
+        run: |
+          SHA=${{ github.event.workflow_run.head_sha || github.sha }}
+          az extension add --name containerapp --upgrade -y --only-show-errors
+          az containerapp update -n "${{ vars.AZURE_APP }}" -g "${{ vars.AZURE_RG }}" \
+            --image "ghcr.io/${{ github.repository_owner }}/de-assistant:$SHA" -o none
+      - name: Smoke test the live URL
+        run: |
+          for i in $(seq 1 40); do curl -sf "${{ vars.AZURE_URL }}/health" && exit 0; sleep 6; done
+          echo "/health did not answer" && exit 1
