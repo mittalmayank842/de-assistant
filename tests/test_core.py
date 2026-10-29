@@ -31,3 +31,12 @@ def test_pii_classifier(tmp_path, monkeypatch):
     out = catalog.classify_pii("silver.people")
     assert set(out["pii_columns"]) == {"customer_email", "contact"}
     assert out["columns"]["contact"]["reason"] == "values look like phone"
+
+
+def test_tools_without_pipeline_data_return_a_clear_error(monkeypatch, tmp_path):
+    from de_assistant import api, config
+    monkeypatch.setattr(config, "LAKE", tmp_path / "missing")
+    for name, args in [("get_table_metadata", {"table": "silver.coins"}),
+                       ("classify_pii", {"table": "silver.coins"})]:
+        out = api.run_tool(name, args)
+        assert out == {"error": api.NO_DATA}
