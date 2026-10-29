@@ -34,5 +34,10 @@ jobs:
           exit 1
       - name: Smoke test the live URL
         run: |
-          for i in $(seq 1 40); do curl -sf "${{ vars.AZURE_URL }}/health" && exit 0; sleep 6; done
-          echo "/health did not answer" && exit 1
+          WANT=${{ github.event.workflow_run.head_sha || '' }}
+          for i in $(seq 1 60); do  # wait until the new image is the one answering, not just any replica
+            H=$(curl -sf "${{ vars.AZURE_URL }}/health" || true)
+            if [ -n "$H" ] && { [ -z "$WANT" ] || echo "$H" | grep -q "\"version\":\"$WANT\""; }; then echo "$H"; exit 0; fi
+            sleep 10
+          done
+          echo "live /health never reported version $WANT: $H" && exit 1

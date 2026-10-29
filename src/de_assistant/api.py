@@ -1,6 +1,8 @@
 """FastAPI backend: POST /chat routes a question to a tool, then asks the LLM to answer."""
 from __future__ import annotations
 
+import os
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
@@ -35,7 +37,7 @@ class Call(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"ok": True, "tables": router.known_tables(), "tools": list(TOOLS)}
+    return {"ok": True, "version": os.getenv("GIT_SHA", "dev"), "tables": router.known_tables(), "tools": list(TOOLS)}
 
 
 @app.post("/index")
