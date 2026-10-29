@@ -6,6 +6,9 @@ on:
     types: [completed]
     branches: [main]
   workflow_dispatch:
+concurrency:  # one rollout at a time; Container Apps rejects overlapping updates
+  group: azure-deploy
+  cancel-in-progress: false
 permissions:
   id-token: write   # OIDC login to Azure, no stored password
   contents: read
