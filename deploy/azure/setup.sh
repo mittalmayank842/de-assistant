@@ -11,7 +11,7 @@
 set -euo pipefail
 
 RG=${RG:-de-assistant-rg}
-LOC=${LOC:-centralindia}
+LOC=${LOC:-eastasia}  # Azure for Students only allows a few regions; East Asia supports Container Apps
 ENV_NAME=${ENV_NAME:-de-assistant-env}
 APP=${APP:-de-assistant}
 IMAGE=${IMAGE:-ghcr.io/mittalmayank842/de-assistant:latest}
@@ -25,7 +25,7 @@ az extension add --name containerapp --upgrade -y --only-show-errors
 az provider register --namespace Microsoft.App --wait
 az provider register --namespace Microsoft.OperationalInsights --wait
 
-az group create -n "$RG" -l "$LOC" -o none
+az group show -n "$RG" -o none 2>/dev/null || az group create -n "$RG" -l "$LOC" -o none
 
 az containerapp env create -n "$ENV_NAME" -g "$RG" -l "$LOC" --logs-destination none -o none
 
