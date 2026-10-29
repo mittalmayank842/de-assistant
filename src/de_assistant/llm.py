@@ -1,11 +1,11 @@
-"""Answer generation with a local Llama model served by Ollama."""
+"""Answer generation: Azure OpenAI when configured, otherwise a local Llama model served by Ollama."""
 from __future__ import annotations
 
 import json
 
 import httpx
 
-from . import config
+from . import azure_ai, config
 
 SYSTEM = ("You are a data engineering assistant for a crypto market data pipeline. "
           "Answer only from the tool result you are given. If it does not contain the answer, say so. "
@@ -14,6 +14,11 @@ SYSTEM = ("You are a data engineering assistant for a crypto market data pipelin
 
 def answer(question: str, tool: str, result: object) -> str:
     prompt = f"Question: {question}\n\nTool used: {tool}\nTool result (JSON):\n{json.dumps(result, default=str)[:6000]}"
+    if azure_ai.openai_enabled():
+        try:
+            return azure_ai.chat(SYSTEM, prompt)
+        except httpx.HTTPError as e:
+            return f"(LLM unavailable: {e.__class__.__name__}) Raw tool result: {json.dumps(result, default=str)[:800]}"
     try:
         r = httpx.post(f"{config.OLLAMA_URL}/api/chat", timeout=120, json={
             "model": config.OLLAMA_MODEL, "stream": False, "options": {"temperature": 0.1},

@@ -18,7 +18,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from de_assistant import llm, ops, rag, router  # noqa: E402
+from de_assistant import azure_ai, llm, ops, rag, router  # noqa: E402
 from de_assistant.tools import TOOLS  # noqa: E402
 
 GATES = {"routing_accuracy": 0.80, "retrieval_recall_at_3": 0.85, "guardrail_pass_rate": 1.0}
@@ -312,13 +312,15 @@ def run_llm():
     return {"grounded_n": len(GROUNDED_QS), "grounded_rate": round(grounded / len(GROUNDED_QS), 3), "ungrounded": ungrounded,
             "unanswerable_n": len(UNANSWERABLE), "admits_unknown_rate": round(admits / len(UNANSWERABLE), 3), "guessed": guessed,
             "llm_latency_s_p50": round(statistics.median(lat), 2), "llm_latency_s_p95": round(pct(lat, 95) / 1000, 2),
-            "model": llm.config.OLLAMA_MODEL}
+            "model": ("azure-openai:" + azure_ai.CHAT_MODEL) if azure_ai.openai_enabled() else llm.config.OLLAMA_MODEL}
 
 
 def main():
-    out_path = Path(__file__).with_name("results.json")
+    azure = azure_ai.search_enabled()
+    out_path = Path(__file__).with_name("results_azure.json" if azure else "results.json")
     prev = json.loads(out_path.read_text()) if out_path.exists() else {}
-    res = {"routing": run_routing(), "retrieval": run_retrieval(), "guardrail": run_guardrail()}
+    res = {"backend": "azure (AI Search hybrid + Azure OpenAI)" if azure else "local (ChromaDB + MiniLM + Ollama)",
+           "routing": run_routing(), "retrieval": run_retrieval(), "guardrail": run_guardrail()}
     res["llm"] = run_llm() if "--llm" in sys.argv else prev.get("llm")
     out_path.write_text(json.dumps(res, indent=1))
     r, t, g = res["routing"], res["retrieval"], res["guardrail"]

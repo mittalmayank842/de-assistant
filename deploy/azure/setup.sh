@@ -3,7 +3,8 @@
 #
 # Creates (all inside one resource group, free-tier friendly):
 #   - an Azure Container Apps environment (no Log Analytics, so no log charges)
-#   - the de-assistant container app, pulling the public GHCR image, scale-to-zero
+#   - the de-assistant container app, pulling the public GHCR image, scale-to-zero, with a managed identity
+#   (then run ai_setup.sh for Azure OpenAI + AI Search + Key Vault)
 #   - a GitHub Actions identity (OIDC, no stored passwords) that may redeploy only this resource group
 # Then stores the IDs as GitHub repo secrets/variables so every push to main redeploys.
 #
@@ -12,8 +13,8 @@ set -euo pipefail
 
 RG=${RG:-de-assistant-rg}
 LOC=${LOC:-eastasia}  # Azure for Students only allows a few regions; East Asia supports Container Apps
-ENV_NAME=${ENV_NAME:-de-assistant-env}
-APP=${APP:-de-assistant}
+ENV_NAME=${ENV_NAME:-deassist-env}
+APP=${APP:-deassist-api}
 IMAGE=${IMAGE:-ghcr.io/mittalmayank842/de-assistant:latest}
 REPO=${REPO:-mittalmayank842/de-assistant}
 
@@ -27,11 +28,12 @@ az provider register --namespace Microsoft.OperationalInsights --wait
 
 az group show -n "$RG" -o none 2>/dev/null || az group create -n "$RG" -l "$LOC" -o none
 
-az containerapp env create -n "$ENV_NAME" -g "$RG" -l "$LOC" --logs-destination none -o none
+# WorkloadProfiles mode (not Express): Express does not support managed identity or Key Vault references.
+az containerapp env create -n "$ENV_NAME" -g "$RG" -l "$LOC" --environment-mode WorkloadProfiles --logs-destination none -o none
 
 az containerapp create -n "$APP" -g "$RG" --environment "$ENV_NAME" \
   --image "$IMAGE" --target-port 8000 --ingress external \
-  --cpu 0.5 --memory 1.0Gi --min-replicas 0 --max-replicas 1 \
+  --cpu 0.5 --memory 1.0Gi --min-replicas 0 --max-replicas 1 --workload-profile-name Consumption --system-assigned \
   --env-vars PIPELINE_HOME=/nonexistent -o none
 
 FQDN=$(az containerapp show -n "$APP" -g "$RG" --query properties.configuration.ingress.fqdn -o tsv)

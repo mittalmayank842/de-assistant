@@ -1,0 +1,118 @@
+{
+ "backend": "azure (AI Search hybrid + Azure OpenAI)",
+ "routing": {
+  "n": 120,
+  "accuracy": 0.942,
+  "per_intent": {
+   "search_docs": {
+    "precision": 1.0,
+    "recall": 0.75
+   },
+   "get_table_metadata": {
+    "precision": 1.0,
+    "recall": 1.0
+   },
+   "classify_pii": {
+    "precision": 1.0,
+    "recall": 0.9
+   },
+   "trace_lineage": {
+    "precision": 0.952,
+    "recall": 1.0
+   },
+   "pipeline_status": {
+    "precision": 0.909,
+    "recall": 1.0
+   },
+   "trigger_pipeline": {
+    "precision": 0.833,
+    "recall": 1.0
+   }
+  },
+  "misses": [
+   {
+    "q": "Which endpoints does the pipeline call?",
+    "want": "search_docs",
+    "got": "pipeline_status"
+   },
+   {
+    "q": "How often does the pipeline run?",
+    "want": "search_docs",
+    "got": "trigger_pipeline"
+   },
+   {
+    "q": "How do I fix a Python version mismatch in Spark?",
+    "want": "search_docs",
+    "got": "trigger_pipeline"
+   },
+   {
+    "q": "How many coins does the pipeline track?",
+    "want": "search_docs",
+    "got": "pipeline_status"
+   },
+   {
+    "q": "Is it safe to run the pipeline twice?",
+    "want": "search_docs",
+    "got": "trigger_pipeline"
+   },
+   {
+    "q": "Could bronze.price_history identify a person?",
+    "want": "classify_pii",
+    "got": "trace_lineage"
+   },
+   {
+    "q": "Run a sensitive-data scan on platinum.coin_scorecard",
+    "want": "classify_pii",
+    "got": "trigger_pipeline"
+   }
+  ],
+  "latency_ms_p50": 10.1,
+  "latency_ms_p95": 15.6
+ },
+ "retrieval": {
+  "n": 40,
+  "recall_at_1": 0.825,
+  "recall_at_3": 0.95,
+  "mrr": 0.894,
+  "misses": [
+   {
+    "q": "Who owns the pipeline layers?",
+    "want": "05_data_governance.md > Ownership",
+    "top": [
+     "01_pipeline_overview.md > Layers",
+     "01_pipeline_overview.md > How to run",
+     "05_data_governance.md > Current status"
+    ]
+   },
+   {
+    "q": "What candle interval is used?",
+    "want": "01_pipeline_overview.md > Source endpoints",
+    "top": [
+     "03_data_quality.md > Candle rules (silver.candles)",
+     "01_pipeline_overview.md > Schedule and SLA",
+     "02_layers_and_tables.md > Gold"
+    ]
+   }
+  ],
+  "latency_ms_p50": 3269.2,
+  "latency_ms_p95": 3799.4
+ },
+ "guardrail": {
+  "n": 45,
+  "direct": 40,
+  "indirect": 5,
+  "pass_rate": 1.0,
+  "fails": []
+ },
+ "llm": {
+  "grounded_n": 30,
+  "grounded_rate": 1.0,
+  "ungrounded": [],
+  "unanswerable_n": 10,
+  "admits_unknown_rate": 1.0,
+  "guessed": [],
+  "llm_latency_s_p50": 2.59,
+  "llm_latency_s_p95": 3.46,
+  "model": "azure-openai:gpt-5-mini"
+ }
+}

@@ -6,7 +6,7 @@ import os
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-from . import config, llm, rag, router
+from . import azure_ai, config, llm, rag, router
 from .tools import TOOLS
 
 app = FastAPI(title="Data Engineering Assistant")
@@ -37,7 +37,10 @@ class Call(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"ok": True, "version": os.getenv("GIT_SHA", "dev"), "tables": router.known_tables(), "tools": list(TOOLS)}
+    backend = "azure" if azure_ai.search_enabled() else "local"
+    return {"ok": True, "version": os.getenv("GIT_SHA", "dev"), "backend": backend,
+            "llm": (azure_ai.CHAT_MODEL if azure_ai.openai_enabled() else config.OLLAMA_MODEL),
+            "tables": router.known_tables(), "tools": list(TOOLS)}
 
 
 @app.post("/index")

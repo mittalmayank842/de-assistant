@@ -63,17 +63,40 @@ The same functions are served two ways:
 docker run -p 8000:8000 ghcr.io/mittalmayank842/de-assistant:latest
 ```
 
-**Live on Azure:** the API runs on **Azure Container Apps** (East Asia, 0.5 vCPU, scales to zero when idle):
-https://de-assistant.thankfultree-5b5dff79.eastasia.azurecontainerapps.io/health. The first call after it has been idle takes a few seconds while it starts.
+## Running on Azure
 
-Every successful image build on `main` triggers [Deploy to Azure](.github/workflows/azure-deploy.yml):
-1. GitHub Actions signs in to Azure with OIDC workload identity federation. No password or client secret is stored, and the identity may change only this resource group.
-2. It rolls the container app to the image built from that exact commit.
-3. It fails the run if the live `/health` does not answer.
+Live: https://deassist-api.bravewater-457fb342.eastasia.azurecontainerapps.io/health. After it has been idle, the first call takes a few seconds while it starts.
 
-The one-time setup is [deploy/azure/setup.sh](deploy/azure/setup.sh).
+| Piece | Azure service |
+| --- | --- |
+| API (FastAPI, Docker image from GHCR) | **Azure Container Apps**, East Asia; scales to zero, 0.5 vCPU |
+| Answer generation | **Azure OpenAI** `gpt-5-mini`, Korea Central |
+| Embeddings | **Azure OpenAI** `text-embedding-3-small` |
+| Retrieval | **Azure AI Search** (free tier): hybrid BM25 keyword + vector search, fused with RRF |
+| Secrets | **Azure Key Vault**; the app reads them through Key Vault references and its managed identity |
+| Deploys | **GitHub Actions**, signed in to Azure with OIDC workload identity federation |
 
-The hosted copy has no GPU, so the local Llama model is not deployed. There, `/chat` returns the tool result (docs search, metadata, PII, lineage) without the generated sentence. The full RAG answer runs locally with Docker Compose + Ollama.
+No key is stored in the app config, the repo or GitHub. The deploy identity may change only this resource group.
+
+The same benchmark (`evals/results_azure.json`) on the Azure backend:
+
+| Check | Local (ChromaDB + MiniLM + Llama 3.2) | Azure (AI Search hybrid + gpt-5-mini) |
+| --- | --- | --- |
+| Retrieval recall@3 / recall@1 / MRR | 90% / 80% / 0.858 | **95% / 82.5% / 0.894** |
+| Grounded answers | 30/30 | **30/30** |
+| Admits unknown | 10/10 | **10/10** |
+| LLM answer latency p50 | 5.2 s | **2.6 s** |
+
+Routing (94.2%) and the guardrail (45/45 blocked) don't depend on the backend.
+
+**Deploy flow:** every successful image build on `main` triggers [Deploy to Azure](.github/workflows/azure-deploy.yml).
+1. It rolls the container app to the image built from that exact commit, with rollouts one at a time.
+2. It waits until the live `/health` reports that commit's version.
+3. It fails the run if it never does.
+
+**Setup:** [deploy/azure/setup.sh](deploy/azure/setup.sh) creates the app and its GitHub deploy identity. [deploy/azure/ai_setup.sh](deploy/azure/ai_setup.sh) creates Azure OpenAI, AI Search and Key Vault.
+
+**Data:** the hosted copy has no pipeline data, because the Delta tables live with the pipeline. So metadata, PII and run-status questions return a clear "no pipeline data on this host" message. Docs questions and lineage work fully. Without the Azure settings, the app falls back to the local stack (Docker Compose + Ollama).
 
 ## Run it
 

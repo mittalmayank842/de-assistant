@@ -40,3 +40,9 @@ def test_tools_without_pipeline_data_return_a_clear_error(monkeypatch, tmp_path)
                        ("classify_pii", {"table": "silver.coins"})]:
         out = api.run_tool(name, args)
         assert out == {"error": api.NO_DATA}
+
+
+def test_azure_backend_is_off_without_config(monkeypatch):
+    from de_assistant import azure_ai
+    monkeypatch.setattr(azure_ai, "AOAI", ""); monkeypatch.setattr(azure_ai, "SEARCH", "")
+    assert not azure_ai.openai_enabled() and not azure_ai.search_enabled()

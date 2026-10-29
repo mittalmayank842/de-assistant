@@ -1,5 +1,8 @@
 """RAG over the pipeline documentation.
 
+Backends: Azure AI Search (hybrid BM25 + vector, Azure OpenAI embeddings) when configured,
+otherwise local MiniLM embeddings in ChromaDB.
+
 Docs are split on their markdown headings so each chunk is one self-contained section
 (a rule, a table, a runbook entry) instead of an arbitrary character window.
 """
@@ -11,7 +14,7 @@ from functools import lru_cache
 import chromadb
 from sentence_transformers import SentenceTransformer
 
-from . import config
+from . import azure_ai, config
 
 COLLECTION = "pipeline_docs"
 
@@ -56,8 +59,14 @@ def collection():
     return client.get_or_create_collection(COLLECTION, metadata={"hnsw:space": "cosine"})
 
 
+def load_chunks() -> list[dict]:
+    return [c for p in sorted(config.DOCS.glob("*.md")) for c in chunk_markdown(p.read_text(), p.name)]
+
+
 def build_index() -> int:
-    chunks = [c for p in sorted(config.DOCS.glob("*.md")) for c in chunk_markdown(p.read_text(), p.name)]
+    chunks = load_chunks()
+    if azure_ai.search_enabled():
+        return azure_ai.build_index(chunks)
     col = collection()
     existing = col.get()["ids"]
     if existing:
@@ -69,6 +78,10 @@ def build_index() -> int:
 
 
 def search(query: str, k: int = 4) -> list[dict]:
+    if azure_ai.search_enabled():
+        if azure_ai.index_count() == 0:
+            build_index()
+        return azure_ai.search(query, k)
     col = collection()
     if col.count() == 0:
         build_index()
