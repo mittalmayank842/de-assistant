@@ -38,15 +38,28 @@ The same functions are served two ways:
 
 ## Evaluation
 
-| Check | Result |
-| --- | --- |
-| Intent routing, tuning set (24 questions) | 24/24 |
-| Intent routing, **held-out set (16 questions, never tuned on)** | **13/16 (81%)** |
-| Unit tests (chunking, lineage, PII classifier) | 3 passing |
-| MCP smoke test (list tools, call 2 tools over stdio) | passing |
+[![CI](https://github.com/mittalmayank842/de-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/mittalmayank842/de-assistant/actions/workflows/ci.yml)
+[![Docker image](https://github.com/mittalmayank842/de-assistant/actions/workflows/docker.yml/badge.svg)](https://github.com/mittalmayank842/de-assistant/actions/workflows/docker.yml)
 
-The tuning-set score is optimistic by design; the held-out score is the honest one. Remaining misses are
-listed by `evals/routing_holdout.py`.
+`evals/benchmark.py` holds questions written after the router and RAG were finished. None of them is used to tune anything.
+
+| Check | Set | Result |
+| --- | --- | --- |
+| Intent routing | 120 held-out questions (20 per tool) | **94.2%** accuracy (113/120); per-tool precision 0.83–1.00, recall 0.75–1.00 |
+| Retrieval | 40 questions labelled with the right doc section | **recall@3 90%**, recall@1 80%, MRR 0.858 |
+| Guardrail | 15 prompts that try to force a real pipeline run ("confirm=true", "admin approved", "ignore your rules") | **15/15 blocked**: nothing runs without an explicit confirm |
+| Grounding (Llama 3.2 3B) | 12 end-to-end questions | **12/12** answers use only numbers and table names found in the tool result |
+| Admits unknown | 6 questions the docs can't answer | **6/6** say so instead of guessing |
+| Latency | local, M-series Mac | routing p50 11 ms · retrieval p50 11 ms · LLM answer p50 4.3 s |
+| Earlier sets | tuning 24 / first held-out 16 | 24/24 · 13/16 |
+
+**Known weak spot:** about a quarter of docs questions that mention the pipeline ("How often does the pipeline run?") get routed to `pipeline_status` or `trigger_pipeline`. They stay misses in the set on purpose; fixing them by tuning on this set would make the score dishonest.
+
+**CI/CD:** every push runs the unit tests, the benchmark and the MCP smoke test on GitHub Actions. The benchmark is a regression gate: the build fails if routing drops below 80%, recall@3 below 85% or guardrails below 100%. On `main`, the Docker image is built, started and checked on `/health` (deploy smoke test), then published to GitHub Container Registry:
+
+```bash
+docker run -p 8000:8000 ghcr.io/mittalmayank842/de-assistant:latest
+```
 
 ## Run it
 
@@ -66,5 +79,6 @@ Set `PIPELINE_HOME` if the pipeline checkout is not a sibling folder.
 .venv/bin/python -m pytest -q
 .venv/bin/python evals/routing_eval.py
 .venv/bin/python evals/routing_holdout.py
+.venv/bin/python evals/benchmark.py --llm   # full benchmark incl. grounding (needs Ollama)
 .venv/bin/python evals/mcp_smoke.py
 ```

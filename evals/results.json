@@ -1,0 +1,133 @@
+{
+ "routing": {
+  "n": 120,
+  "accuracy": 0.942,
+  "per_intent": {
+   "search_docs": {
+    "precision": 1.0,
+    "recall": 0.75
+   },
+   "get_table_metadata": {
+    "precision": 1.0,
+    "recall": 1.0
+   },
+   "classify_pii": {
+    "precision": 1.0,
+    "recall": 0.9
+   },
+   "trace_lineage": {
+    "precision": 0.952,
+    "recall": 1.0
+   },
+   "pipeline_status": {
+    "precision": 0.909,
+    "recall": 1.0
+   },
+   "trigger_pipeline": {
+    "precision": 0.833,
+    "recall": 1.0
+   }
+  },
+  "misses": [
+   {
+    "q": "Which endpoints does the pipeline call?",
+    "want": "search_docs",
+    "got": "pipeline_status"
+   },
+   {
+    "q": "How often does the pipeline run?",
+    "want": "search_docs",
+    "got": "trigger_pipeline"
+   },
+   {
+    "q": "How do I fix a Python version mismatch in Spark?",
+    "want": "search_docs",
+    "got": "trigger_pipeline"
+   },
+   {
+    "q": "How many coins does the pipeline track?",
+    "want": "search_docs",
+    "got": "pipeline_status"
+   },
+   {
+    "q": "Is it safe to run the pipeline twice?",
+    "want": "search_docs",
+    "got": "trigger_pipeline"
+   },
+   {
+    "q": "Could bronze.price_history identify a person?",
+    "want": "classify_pii",
+    "got": "trace_lineage"
+   },
+   {
+    "q": "Run a sensitive-data scan on platinum.coin_scorecard",
+    "want": "classify_pii",
+    "got": "trigger_pipeline"
+   }
+  ],
+  "latency_ms_p50": 10.5,
+  "latency_ms_p95": 12.4
+ },
+ "retrieval": {
+  "n": 40,
+  "recall_at_1": 0.8,
+  "recall_at_3": 0.9,
+  "mrr": 0.858,
+  "misses": [
+   {
+    "q": "What does the --reuse flag do?",
+    "want": "01_pipeline_overview.md > How to run",
+    "top": [
+     "04_runbook.md > Re-running safely",
+     "02_layers_and_tables.md > Bronze",
+     "05_data_governance.md > Current status"
+    ]
+   },
+   {
+    "q": "Which candlestick patterns are detected?",
+    "want": "02_layers_and_tables.md > Gold",
+    "top": [
+     "03_data_quality.md > Candle rules (silver.candles)",
+     "02_layers_and_tables.md > Platinum",
+     "02_layers_and_tables.md > Silver"
+    ]
+   },
+   {
+    "q": "Who owns the pipeline layers?",
+    "want": "05_data_governance.md > Ownership",
+    "top": [
+     "01_pipeline_overview.md > Layers",
+     "05_data_governance.md > Current status",
+     "01_pipeline_overview.md > Purpose"
+    ]
+   },
+   {
+    "q": "What candle interval is used?",
+    "want": "01_pipeline_overview.md > Source endpoints",
+    "top": [
+     "03_data_quality.md > Candle rules (silver.candles)",
+     "02_layers_and_tables.md > Gold",
+     "02_layers_and_tables.md > Platinum"
+    ]
+   }
+  ],
+  "latency_ms_p50": 10.8,
+  "latency_ms_p95": 12.2
+ },
+ "guardrail": {
+  "n": 15,
+  "pass_rate": 1.0,
+  "fails": []
+ },
+ "llm": {
+  "grounded_n": 12,
+  "grounded_rate": 1.0,
+  "ungrounded": [],
+  "unanswerable_n": 6,
+  "admits_unknown_rate": 1.0,
+  "guessed": [],
+  "llm_latency_s_p50": 4.33,
+  "llm_latency_s_p95": 7.93,
+  "model": "llama3.2:3b"
+ }
+}
