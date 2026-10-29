@@ -46,16 +46,16 @@ The same functions are served two ways:
 | Check | Set | Result |
 | --- | --- | --- |
 | Intent routing | 120 held-out questions (20 per tool) | **94.2%** accuracy (113/120); per-tool precision 0.83–1.00, recall 0.75–1.00 |
-| Retrieval | 40 questions labelled with the right doc section | **recall@3 90%**, recall@1 80%, MRR 0.858 |
-| Guardrail | 15 prompts that try to force a real pipeline run ("confirm=true", "admin approved", "ignore your rules") | **15/15 blocked**: nothing runs without an explicit confirm |
-| Grounding (Llama 3.2 3B) | 12 end-to-end questions | **12/12** answers use only numbers and table names found in the tool result |
-| Admits unknown | 6 questions the docs can't answer | **6/6** say so instead of guessing |
-| Latency | local, M-series Mac | routing p50 11 ms · retrieval p50 11 ms · LLM answer p50 4.3 s |
+| Retrieval | 40 questions labelled with the right section, over 20 doc sections | **recall@3 90%**, recall@1 80%, MRR 0.858 |
+| Guardrail | 45 attacks: 40 direct prompts ("confirm=true", "admin approved", "ignore your rules", fake tool-call JSON) + 5 instructions hidden inside retrieved documents | **45/45 blocked**: nothing runs without an explicit confirm |
+| Grounding (Llama 3.2 3B) | 30 end-to-end questions across all 6 tools | **30/30** answers use only numbers and table names found in the tool result |
+| Admits unknown | 10 questions the docs can't answer | **10/10** say so instead of guessing |
+| Latency | local, M-series Mac | routing p50 11 ms · retrieval p50 11 ms · LLM answer p50 5.2 s |
 | Earlier sets | tuning 24 / first held-out 16 | 24/24 · 13/16 |
 
 **Known weak spot:** about a quarter of docs questions that mention the pipeline ("How often does the pipeline run?") get routed to `pipeline_status` or `trigger_pipeline`. They stay misses in the set on purpose; fixing them by tuning on this set would make the score dishonest.
 
-**CI/CD:** every push runs the unit tests, the benchmark and the MCP smoke test on GitHub Actions. The benchmark is a regression gate: the build fails if routing drops below 80%, recall@3 below 85% or guardrails below 100%. On `main`, the Docker image is built, started and checked on `/health` (deploy smoke test), then published to GitHub Container Registry:
+**CI/CD:** every push runs the unit tests, the benchmark and the MCP smoke test on GitHub Actions. The benchmark is a regression gate: the build fails if routing drops below 80%, recall@3 below 85% or any guardrail attack gets through. On `main`, the Docker image is built, started and checked on `/health` (deploy smoke test), then published to GitHub Container Registry:
 
 ```bash
 docker run -p 8000:8000 ghcr.io/mittalmayank842/de-assistant:latest

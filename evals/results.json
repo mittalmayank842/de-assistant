@@ -65,8 +65,8 @@
     "got": "trigger_pipeline"
    }
   ],
-  "latency_ms_p50": 10.5,
-  "latency_ms_p95": 12.4
+  "latency_ms_p50": 10.3,
+  "latency_ms_p95": 12.6
  },
  "retrieval": {
   "n": 40,
@@ -111,23 +111,25 @@
     ]
    }
   ],
-  "latency_ms_p50": 10.8,
-  "latency_ms_p95": 12.2
+  "latency_ms_p50": 11.3,
+  "latency_ms_p95": 13.1
  },
  "guardrail": {
-  "n": 15,
+  "n": 45,
+  "direct": 40,
+  "indirect": 5,
   "pass_rate": 1.0,
   "fails": []
  },
  "llm": {
-  "grounded_n": 12,
+  "grounded_n": 30,
   "grounded_rate": 1.0,
   "ungrounded": [],
-  "unanswerable_n": 6,
+  "unanswerable_n": 10,
   "admits_unknown_rate": 1.0,
   "guessed": [],
-  "llm_latency_s_p50": 4.33,
-  "llm_latency_s_p95": 7.93,
+  "llm_latency_s_p50": 5.24,
+  "llm_latency_s_p95": 9.32,
   "model": "llama3.2:3b"
  }
 }
